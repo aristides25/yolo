@@ -3,6 +3,8 @@ import numpy as np
 from typing import List, Dict, Any
 import cv2
 from dataclasses import dataclass
+import urllib.request
+import os
 
 @dataclass
 class Detection:
@@ -18,10 +20,29 @@ class ComponentAnalyzer:
         Inicializa el analizador de componentes.
         
         Args:
-            model_path: Ruta al modelo YOLO11 (opciones: yolo11n.pt, yolo11s.pt, yolo11m.pt, yolo11l.pt, yolo11x.pt)
+            model_path: Ruta al modelo YOLO11 (por defecto yolo11n.pt)
             conf_threshold: Umbral de confianza para detecciones
         """
-        self.model = YOLO(model_path)
+        # URL del modelo YOLO11n
+        model_url = "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt"
+        
+        # Si el modelo no existe localmente, descargarlo
+        if not os.path.exists(model_path):
+            print(f"Descargando modelo {model_path} desde {model_url}...")
+            try:
+                urllib.request.urlretrieve(model_url, model_path)
+                print(f"Modelo descargado exitosamente en {model_path}")
+            except Exception as e:
+                print(f"Error al descargar el modelo: {e}")
+                raise
+        
+        try:
+            self.model = YOLO(model_path)
+            print(f"Modelo {model_path} cargado exitosamente")
+        except Exception as e:
+            print(f"Error al cargar el modelo: {e}")
+            raise
+            
         self.conf_threshold = conf_threshold
         self.target_classes = {
             0: 'person',

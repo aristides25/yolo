@@ -67,7 +67,7 @@ class ComponentTracker:
         color_diff = np.mean(np.abs(np.array(obj1.detection.dominant_color) - np.array(det2.dominant_color)))
         color_similarity = 1.0 - (color_diff / 255.0)
         
-        # Combinar métricas (puedes ajustar los pesos según necesidad)
+        # Combinar métricas
         return 0.5 * iou + 0.25 * hash_similarity + 0.25 * color_similarity
 
     def update(self, detections: List[Detection]) -> Dict[int, TrackedObject]:
@@ -87,40 +87,56 @@ class ComponentTracker:
                 self.next_object_id += 1
             return self.tracked_objects
 
+        # Si no hay detecciones, incrementar desapariciones
+        if len(detections) == 0:
+            for obj_id in list(self.tracked_objects.keys()):
+                self.tracked_objects[obj_id].disappeared += 1
+                if self.tracked_objects[obj_id].disappeared > self.max_disappeared:
+                    del self.tracked_objects[obj_id]
+            return self.tracked_objects
+
         # Calcular matriz de similitud
         similarity_matrix = np.zeros((len(self.tracked_objects), len(detections)))
-        for i, tracked_obj in enumerate(self.tracked_objects.values()):
+        tracked_ids = list(self.tracked_objects.keys())
+        
+        for i, track_id in enumerate(tracked_ids):
             for j, detection in enumerate(detections):
-                similarity_matrix[i, j] = self._calculate_similarity(tracked_obj, detection)
+                similarity_matrix[i, j] = self._calculate_similarity(self.tracked_objects[track_id], detection)
 
         # Asociar detecciones con objetos tracked
-        if len(similarity_matrix) > 0:
-            tracked_indices = list(range(len(self.tracked_objects)))
-            detection_indices = list(range(len(detections)))
-            
-            # Asociar usando el mejor match disponible
-            while len(tracked_indices) > 0 and len(detection_indices) > 0:
-                i, j = np.unravel_index(similarity_matrix.argmax(), similarity_matrix.shape)
-                if similarity_matrix[i, j] < 0.3:  # Umbral mínimo de similitud
-                    break
-                    
-                track_id = list(self.tracked_objects.keys())[tracked_indices[i]]
-                self.tracked_objects[track_id].update(detections[detection_indices[j]])
-                
-                similarity_matrix[i, :] = -1
-                similarity_matrix[:, j] = -1
-                tracked_indices.remove(tracked_indices[i])
-                detection_indices.remove(detection_indices[j])
+        used_detections = set()
+        used_tracks = set()
 
-        # Incrementar contador de desapariciones para objetos no matcheados
-        for obj_id in list(self.tracked_objects.keys()):
-            self.tracked_objects[obj_id].disappeared += 1
-            if self.tracked_objects[obj_id].disappeared > self.max_disappeared:
-                del self.tracked_objects[obj_id]
+        while True:
+            # Encontrar el mejor match
+            if similarity_matrix.size == 0 or np.max(similarity_matrix) < 0.3:
+                break
+
+            i, j = np.unravel_index(similarity_matrix.argmax(), similarity_matrix.shape)
+            if i >= len(tracked_ids) or j >= len(detections):
+                break
+
+            track_id = tracked_ids[i]
+            self.tracked_objects[track_id].update(detections[j])
+            
+            used_detections.add(j)
+            used_tracks.add(i)
+            
+            # Marcar como usado
+            similarity_matrix[i, :] = -1
+            similarity_matrix[:, j] = -1
+
+        # Manejar objetos no matcheados
+        for i, track_id in enumerate(tracked_ids):
+            if i not in used_tracks:
+                self.tracked_objects[track_id].disappeared += 1
+                if self.tracked_objects[track_id].disappeared > self.max_disappeared:
+                    del self.tracked_objects[track_id]
 
         # Registrar nuevas detecciones
-        for idx in detection_indices:
-            self.tracked_objects[self.next_object_id] = TrackedObject(detections[idx], self.next_object_id)
-            self.next_object_id += 1
+        for j, detection in enumerate(detections):
+            if j not in used_detections:
+                self.tracked_objects[self.next_object_id] = TrackedObject(detection, self.next_object_id)
+                self.next_object_id += 1
 
         return self.tracked_objects 

@@ -1,0 +1,25 @@
+optimization:
+  resolution: 480x360  # Resolución reducida para mejor rendimiento
+  fp16_enabled: true
+  max_threads: 4
+  roi_margin: 30
+  min_fps: 25
+
+processing:
+  light_mode:
+    enabled_features: ['person']
+    max_persons: 10
+  
+  balanced_mode:
+    enabled_features: ['person', 'pose']
+    max_persons: 5
+  
+  full_mode:
+    enabled_features: ['person', 'pose', 'emotion', 'objects']
+    max_persons: 3
+
+thresholds:
+  gpu_temp_limit: 80  # °C
+  gpu_usage_limit: 70  # %
+  cpu_usage_limit: 70  # %
+  min_fps_threshold: 25 

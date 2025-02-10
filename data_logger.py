@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Dict, List
 from pathlib import Path
 from component_tracker import TrackedObject
+import time
 
 class DataLogger:
     def __init__(self, log_dir: str = "logs"):
@@ -81,19 +82,30 @@ class DataLogger:
         # Guardar evento en archivo JSON
         events_file = self.log_dir / "events.json"
         try:
+            events = []
             if events_file.exists():
-                with open(events_file, 'r') as f:
-                    events = json.load(f)
-            else:
-                events = []
-                
+                try:
+                    with open(events_file, 'r') as f:
+                        events = json.load(f)
+                except json.JSONDecodeError:
+                    self.logger.warning("Archivo de eventos corrupto, creando nuevo archivo")
+                    events = []
+                    
             events.append(event_data)
             
             with open(events_file, 'w') as f:
                 json.dump(events, f, indent=2)
                 
         except Exception as e:
-            self.logger.error(f"Error al guardar evento: {e}")
+            self.logger.error(f"Error al guardar evento: {str(e)}")
+            # Crear backup del archivo corrupto
+            if events_file.exists():
+                backup_file = self.log_dir / f"events_backup_{int(time.time())}.json"
+                try:
+                    events_file.rename(backup_file)
+                    self.logger.info(f"Backup creado: {backup_file}")
+                except Exception as be:
+                    self.logger.error(f"Error al crear backup: {str(be)}")
 
     def log_error(self, error_msg: str, details: dict = None):
         """

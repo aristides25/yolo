@@ -8,8 +8,7 @@
     "detection": {
         "model": "yolo11n.pt",
         "confidence_threshold": 0.5,
-        "nms_threshold": 0.45,
-        "target_classes": [0, 24, 26, 27, 28, 32]
+        "target_classes": [0, 67, 76, 26, 39, 43, 75]
     },
     "tracking": {
         "max_disappeared": 50,
@@ -17,6 +16,6 @@
     },
     "logging": {
         "level": "INFO",
-        "file": "surveillance.log"
+        "file": "detections.log"
     }
 } 

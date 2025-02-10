@@ -1,0 +1,22 @@
+{
+    "video": {
+        "source": 0,
+        "width": 640,
+        "height": 480,
+        "fps": 30
+    },
+    "detection": {
+        "model": "yolo11n.pt",
+        "confidence_threshold": 0.5,
+        "nms_threshold": 0.45,
+        "target_classes": [0, 24, 26, 27, 28, 32]
+    },
+    "tracking": {
+        "max_disappeared": 50,
+        "max_distance": 50
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "surveillance.log"
+    }
+} 
